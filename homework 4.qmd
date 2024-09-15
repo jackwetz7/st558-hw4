@@ -1,0 +1,104 @@
+---
+title: "ST558 Homework 4"
+format: html
+editor: visual
+---
+
+## Task 1
+> 1. ../MyData.csv
+> 2. It creates a single place to access different files like datasets and quarto files so the user can quickly navigate between them when working on a project. It also has version control integration which allows multiple people to work together on the same project.
+> 3. Git is a version control software that tracks the changes made to files allowing users easy access to previous versions of their work. It also allows for multiple users to work together and combine their coding efforts. Github is a platform that can be used for creating Git repositories and acts as a place for users to easily access and keep track of the changes recorded by Git. 
+> 4. The first difference is that the default printing method of tibble provides information on the numbers of observations, the columns, and will only print the first few rows/columns to avoid clutter. The second difference is that tibbles do not coerce down to a vector when subsetting to only one column using square brackets '[]'
+> 5. as_tibble |>
+        select(starts_with("Petal), Species) |>
+        filter(Petal.Length < 1.55) |>
+        arrange(Species)
+
+## Task 2
+
+Reading in the glass data
+```{r}
+library(tidyverse)
+glass_names <- c("Id", "RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "Fe", "Type_of_glass")
+glass <- read_csv("https://www4.stat.ncsu.edu/online/datasets/glass.data", col_names = glass_names)
+glass
+```
+
+Manipulating the glass data
+```{r}
+glass |>
+  mutate(Type_of_glass = ifelse(Type_of_glass == 1, "building_windows_float_processed",
+                         ifelse(Type_of_glass == 2, "building_windows_non_float_processed",
+                         ifelse(Type_of_glass == 3, "vehicle_windows_float_processed",
+                         ifelse(Type_of_glass == 4, "vehicle_windows_non_float_processed",
+                         ifelse(Type_of_glass == 5, "containers",
+                         ifelse(Type_of_glass == 6, "tableware",
+                         ifelse(Type_of_glass == 7, "headlamps",
+                                NA)))))))
+         ) |>
+  filter(Fe < 0.2, Type_of_glass %in% c("tableware","headlamps"))
+```
+
+Reading in the yeast data
+```{r}
+yeast_names <- c("seq_name", "mcg", "gvh", "alm", "mit", "erl", "pox", "vac", "nuc", "class")
+yeast <- read_fwf("https://www4.stat.ncsu.edu/online/datasets/yeast.data",
+         fwf_widths(c(12, 6, 6, 6, 6, 6, 6, 6, 6, 3), yeast_names))
+yeast
+```
+
+Manipulating the yeast data
+```{r}
+yeast |>
+  select(mcg:vac, class) |>
+  group_by(class) |>
+  mutate(across(where(is.numeric), 
+                list(mean = mean, median = median), 
+                .names = "{.col}_{.fn}"))
+```
+
+## Task 3
+
+Reading in white wine data
+```{r}
+library(readxl)
+white_wine <- read_excel("white-wine.xlsx")
+white_wine
+```
+
+Changing variable names
+```{r}
+wine_names <- read_excel("white-wine.xlsx", sheet = excel_sheets("white-wine.xlsx")[2])
+colnames(white_wine) <- wine_names[[1]]
+```
+
+Adding a column to the data set
+```{r}
+white_wine <- white_wine |>
+  mutate(type = "white")
+```
+
+Reading in the red wine data, changing names, and adding column
+```{r}
+red_wine <- read_delim("red-wine.csv", delim = ";", skip = 1, col_names = wine_names[[1]])
+red_wine <- red_wine |>
+  mutate(type = "red")
+```
+
+Combining the data sets
+```{r}
+wine <- dplyr::bind_rows(white_wine, red_wine)
+wine
+```
+
+Manipulating combined data set
+```{r}
+wine |>
+  filter(quality > 6.5, alcohol < 132) |>
+  arrange(desc(quality)) |>
+  select(contains("acid"), alcohol, type, quality) |>
+  group_by(quality) |>
+  mutate(across(alcohol, 
+                list(mean = mean, sd = sd), 
+                .names = "{.col}_{.fn}"))
+```
